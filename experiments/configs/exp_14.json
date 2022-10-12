@@ -1,0 +1,24 @@
+{
+  "epochs": 20,
+  "train_batch_size": 8,
+  "eval_batch_size": 16,
+  "model": {
+    "size": "large"
+  },
+  "train_datasets": [
+    "tacred:train",
+    "tacred_combined:train",
+    "tacred_empty:train",
+    "unifiedQA:train_scr82_all_2916"
+  ],
+  "eval_datasets": [
+    "tacred:val",
+    "tacred:test",
+    "tacred_combined:val",
+    "tacred_combined:test",
+    "tacred_empty:val",
+    "tacred_empty:test",
+    "unifiedQA:test",
+    "anchor:dummy"
+  ]
+}

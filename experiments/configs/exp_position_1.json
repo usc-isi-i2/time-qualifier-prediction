@@ -1,0 +1,14 @@
+{
+  "epochs": 20,
+  "train_batch_size": 8,
+  "eval_batch_size": 8,
+  "model": {
+    "size": "large"
+  },
+  "train_datasets": [
+    "position:t5_train"
+  ],
+  "eval_datasets": [
+    "position:t5_test"
+  ]
+}

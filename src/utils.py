@@ -1,7 +1,11 @@
+import os
+import shutil
+import spacy
 import dateparser
-import spacy.lang.en
 import re
 import random
+
+nlp = spacy.load('en_core_web_trf')
 
 month_dict = {
     '01': 'January',
@@ -16,11 +20,11 @@ month_dict = {
     '10': 'October',
     '11': 'November',
     '12': 'December'
-    
+
 }
 
 precision_dict = {
-    
+
     "14": "second",
     "13": "minute",
     "12": "hour",
@@ -39,9 +43,60 @@ q_regex = re.compile(r'when did (.*) marry (.*)[?]')
 wikipedia_url_regex = re.compile(r'http:\/\/(.*)\.wikipedia\.org\/wiki\/(.*)')
 
 
+def prepare_run_files_directory(filepath):
+    if os.path.exists(filepath):
+        shutil.rmtree(filepath)
+
+    print(f'Storing run files at: {filepath}')
+    os.makedirs(filepath)
+
+
+def delete_dir(filepath):
+    if os.path.exists(filepath):
+        shutil.rmtree(filepath)
+
+
+def parse_date(str_with_date: str,
+               precision: str,
+               parse_dates_with_spacy: bool = False):
+    precision = str(int(precision))
+    if precision == '9' or precision.strip().lower() == 'year':
+        requires = ['year']
+    else:
+        requires = ['year', 'month']
+
+    parsed_dates = []
+
+    if parse_dates_with_spacy:
+        spacy_docs = nlp(str_with_date)
+        spacy_dates = [x for x in spacy_docs.ents if x.label_ == 'DATE']
+
+        if spacy_dates:
+            for sd in spacy_dates:
+                parsed_date = dateparser.parse(sd.text, settings={'PREFER_DAY_OF_MONTH': 'first',
+                                                                  'REQUIRE_PARTS': requires})
+                if parsed_date:
+                    parsed_dates.append({'date': f'{parsed_date.year}-{parsed_date.month:0>2}-{parsed_date.day:0>2}',
+                                         'year': parsed_date.year,
+                                         'month': f'{parsed_date.month:0>2}',
+                                         'day': f'{parsed_date.day:0>2}',
+                                         'orig_date': sd.text})
+    else:
+        parsed_date = dateparser.parse(str_with_date, settings={'PREFER_DAY_OF_MONTH': 'first',
+                                                                'REQUIRE_PARTS': requires})
+        if parsed_date:
+            parsed_dates.append(
+                {'date': f'{parsed_date.year}-{parsed_date.month:0>2}-{parsed_date.day:0>2}',
+                 'year': parsed_date.year,
+                 'month': f'{parsed_date.month:0>2}',
+                 'day': f'{parsed_date.day:0>2}',
+                 'orig_date': str_with_date})
+    return parsed_dates
+
+
 def match_dates_based_on_precision(date1: str, wikidata_precision: str, date2: dict):
     if date2 == "":
-        return  False, ""
+        return False, ""
     year, month, day = date1.split('-')
     if wikidata_precision == '10' or wikidata_precision.strip().lower() == 'month':
         return year == str(date2['year']) and month == str(date2['month']), 'month'
@@ -52,38 +107,18 @@ def match_dates_based_on_precision(date1: str, wikidata_precision: str, date2: d
     return date1 == date2['date'], 'exact'
 
 
-def parse_date(str_with_date: str, nlp: spacy.lang.en.English, precision):
-    
-    if precision == '9' or precision.strip().lower() == 'year':
-        requires = ['year']
-    else:
-        requires = ['year', 'month']
-    
-    spacy_docs = nlp(str_with_date)
-    spacy_dates = [x for x in spacy_docs.ents if x.label_ == 'DATE']
-    parsed_dates = []
-    if spacy_dates:
-        for sd in spacy_dates:
-            parsed_date = dateparser.parse(sd.text, settings={'PREFER_DAY_OF_MONTH': 'first', 
-                                                              'REQUIRE_PARTS': requires})
-            if parsed_date:
-                parsed_dates.append({'date': f'{parsed_date.year}-{parsed_date.month:0>2}-{parsed_date.day:0>2}',
-                                     'year': parsed_date.year,
-                                     'month': f'{parsed_date.month:0>2}',
-                                     'day': f'{parsed_date.day:0>2}',
-                                    'orig_date': sd.text})
-    return parsed_dates
-
 def run_model(input_string, tokenizer, model, **generator_args):
     input_ids = tokenizer.encode(input_string, return_tensors="pt")
     res = model.generate(input_ids, **generator_args)
     return tokenizer.batch_decode(res, skip_special_tokens=True)
+
 
 def extract_node1_node2(question):
     rematches = q_regex.match(question)
     node1 = rematches.group(1)
     node2 = rematches.group(2)
     return node1, node2
+
 
 def create_other_dates(some_date, num_dates, based_on=None):
     if based_on is None:
@@ -109,6 +144,7 @@ def create_other_dates(some_date, num_dates, based_on=None):
         num_dates -= 1
     return new_dates
 
+
 def format_dates(some_date, precision):
     year, month, day = some_date.split('-')
     if precision == 'day' or precision == '11':
@@ -116,6 +152,7 @@ def format_dates(some_date, precision):
     if precision == 'month' or precision == '10':
         return f"{month_dict[month]} {year}"
     return f"{year}"
+
 
 def split_wikipedia_url(wikipedia_url):
     re_match = re.match(wikipedia_url_regex, wikipedia_url)

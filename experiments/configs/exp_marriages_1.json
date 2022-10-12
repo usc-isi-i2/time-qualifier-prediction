@@ -1,0 +1,14 @@
+{
+  "epochs": 20,
+  "train_batch_size": 4,
+  "eval_batch_size": 8,
+  "model": {
+    "size": "large"
+  },
+  "train_datasets": [
+    "marriages:train_unified_qa_t5"
+  ],
+  "eval_datasets": [
+    "marriages:test_unified_qa_t5"
+  ]
+}
