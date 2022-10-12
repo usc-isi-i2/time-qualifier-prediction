@@ -59,7 +59,8 @@ def delete_dir(filepath):
 def parse_date(str_with_date: str,
                precision: str,
                parse_dates_with_spacy: bool = False):
-    precision = str(int(precision))
+    if isinstance(precision, int) or isinstance(precision, float):
+        precision = str(int(precision))
     if precision == '9' or precision.strip().lower() == 'year':
         requires = ['year']
     else:
