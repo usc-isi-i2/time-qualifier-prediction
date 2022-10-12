@@ -196,6 +196,7 @@ class UnifiedQATrainer:
             if actual_parsed == pred_parsed and actual_parsed is not None and pred_parsed is not None:
                 correct += 1
                 tp += 1
+                fn += 1
             else:
                 fp += 1
                 fn += 1
